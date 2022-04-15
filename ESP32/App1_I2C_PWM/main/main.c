@@ -3,12 +3,9 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
-#include "driver/timer.h"
 #include "esp_log.h"
-// #include "driver/mcpwm.h"
-
 #include "driver/ledc.h"
+#include "tc74.c"
 
 
 #define RED_LED_GPIO        (18) 
@@ -25,41 +22,6 @@
 #define LEDC_DUTY_MAX               (8189) // Set duty to 100%. ((2 ** 13) - 1) * 50% = 4095
 #define LEDC_FREQUENCY          (5000) // Frequency in Hertz. Set frequency at 5 kHz
 
-// static inline uint32_t servo_angle_to_duty_us(int angle);
-
-int count = 0;
-void TIMER_INIT2(int timer_idx);
-
-// static inline uint32_t servo_angle_to_duty_us(int angle)
-// {
-//     return (angle + SERVO_MAX_DEGREE) * (SERVO_MAX_PULSEWIDTH_US - SERVO_MIN_PULSEWIDTH_US) / (2 * SERVO_MAX_DEGREE) + SERVO_MIN_PULSEWIDTH_US;
-// }
-
-static void IRAM_ATTR timer_callback(void* args) {
-    count++;
-    //ets_printf("Count: %d\n", count);
-    ets_printf("Time: %02d:%02d\n", count/60, count%60);
-}
-
-void TIMER_INIT2(int timer_idx) {
-    timer_config_t config = 
-    {
-  		  .alarm_en = true,
-  		  .counter_en = true,
-  		  .intr_type = TIMER_INTR_LEVEL,
-  		  .counter_dir = TIMER_COUNT_UP,
-  		  .auto_reload = true,
-  		  .divider = 80 // new clock = 1MHz
-            
-    };
-
-    timer_init(TIMER_GROUP_0, timer_idx, &config);
-    timer_set_counter_value(TIMER_GROUP_0, timer_idx, 0);
-    timer_set_alarm_value(TIMER_GROUP_0, timer_idx, 1000000); //generate alarm each 1 second
-    timer_enable_intr(TIMER_GROUP_0, timer_idx);
-    timer_isr_callback_add(TIMER_GROUP_0, timer_idx, timer_callback, NULL, 0);
-    timer_start(TIMER_GROUP_0, timer_idx);
-}
 
 void led_pwm_init(){
 
@@ -167,9 +129,12 @@ void set_led_rgb(float r, float g, float b){
 
 void app_main(void)
 {
+    TC74_init(0,TC74_A0);
+    float temperature;
     led_pwm_init();
     while (1) {
         for (int h = 0; h < 360; h+=1) {
+            temperature = read_TC74();
             vTaskDelay(1); 
           
             HSVtoRGB(h, 100, 100);
