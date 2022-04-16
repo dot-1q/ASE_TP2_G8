@@ -1,0 +1,1 @@
+read from the ADC and print on terminal using UART 
