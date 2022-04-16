@@ -1,0 +1,2 @@
+DAC will be producint musical notes, according to an array of notes
+which will be filled with values by SPI

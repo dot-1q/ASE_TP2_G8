@@ -1,0 +1,3 @@
+Implementing the TC74 temperature sensor, whose values we will read through
+i2c, and an RBG led, which will transition between blue, red and in between
+depending on the values read from the sensor:
