@@ -5,7 +5,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "driver/ledc.h"
-#include "tc74.c"
+#include "tc74.h"
 
 
 #define RED_LED_GPIO        (18) 
@@ -127,15 +127,18 @@ void set_led_rgb(float r, float g, float b){
 
 void app_main(void)
 {
-    TC74_init(0,TC74_A0);
-    float temperature;
+    uint8_t temperature;
+    uint8_t operation_mode;
+    i2c_master_init();
+    i2c_master_read_tc74_config(I2C_MASTER_NUM,&operation_mode);
+    // ESP_LOGI(TAG,"Operation mode is : %d",operation_mode);
+    // set normal mode for testing (200uA consuption)
+    i2c_master_set_tc74_mode(I2C_MASTER_NUM, SET_NORM_OP_VALUE);
     led_pwm_init();
     while (1) {
         for (int h = 0; h < 360; h+=1) {
-            
-            vTaskDelay(100); 
-
-            temperature = read_TC74();
+            i2c_master_read_temp(I2C_MASTER_NUM,&temperature);
+            vTaskDelay(1); 
           
             HSVtoRGB(h, 100, 100);
 

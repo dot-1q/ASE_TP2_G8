@@ -2,120 +2,100 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-static TC74 tc74;
-
-esp_err_t i2c_init()
+esp_err_t i2c_master_init(void)
 {
-    /*!< Initialize ESP32 I2C */
-
+    int i2c_master_port = I2C_MASTER_NUM;
     i2c_config_t conf;
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = SDA;
-    conf.scl_io_num = SCL;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.mode             = I2C_MODE_MASTER;
+    conf.sda_io_num       = I2C_MASTER_SDA_IO;
+    conf.sda_pullup_en    = GPIO_PULLUP_ENABLE;
+    conf.scl_io_num       = I2C_MASTER_SCL_IO;
+    conf.scl_pullup_en    = GPIO_PULLUP_ENABLE;
     conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
-    i2c_param_config(tc74.I2C_PORT_NUM, &conf);
-
-    return i2c_driver_install(tc74.I2C_PORT_NUM, conf.mode,
-                              I2C_MASTER_RX_BUF_DISABLE,
-                              I2C_MASTER_TX_BUF_DISABLE, 0);
+    i2c_param_config(i2c_master_port, &conf);
+    return i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
 }
 
-void select_temperature_register(i2c_cmd_handle_t cmd)
+/**
+ * @brief read temperature data from TC74 sensor (I2C)
+ *
+ * param   i2c_num : Esp32's i2c port number to send data to.
+ * param   tmprt : Temperature value returned by the sensor
+ * return  err :  error code if anything went wrong
+ *
+ * Operations executed in the I2C bus
+ * _________________________________________________________________
+ * | start | slave_addr + wr_bit + ack | write 1 byte + ack  | start | slave_addr + rd_bit + ack | read 1 byte + nack | stop |
+ * --------|---------------------------|---------------------|------|
+ */
+esp_err_t i2c_master_read_temp(i2c_port_t i2c_num, uint8_t *tmprt)
 {
-    /*!< Select the TEMPERATURE register */
-
-    // Slave address
-    i2c_master_write_byte(cmd, tc74.I2C_ADDRESS << 1 | WRITE_BIT, ACK_CHECK_EN);
-
-    // Select temperature register
-    i2c_master_write_byte(cmd, TC74_TEMP_REG, ACK_CHECK_EN);
-}
-
-void select_config_register(i2c_cmd_handle_t cmd)
-{
-    /*!< Select the CONFIG register */
-
-    // Slave address
-    i2c_master_write_byte(cmd, tc74.I2C_ADDRESS << 1 | WRITE_BIT, ACK_CHECK_EN);
-
-    // Select temperature register
-    i2c_master_write_byte(cmd, TC74_CFG_REG, ACK_CHECK_EN);
-}
-
-float extract_value_from_buffer(int temp)
-{
-    /*!< Convert value to negative if needed and convert to Fahrenheit is supplied */
-    int temperature = 0;
-    // Two's complement conversion
-    temperature = -1 * ((temp ^ 255) + 1);
-    // ---------------------------
-
-    return temperature;
-}
-
-void TC74_init(int port_num, int variant)
-{
-    /*!< Initialize TC74 */
-
-    tc74.I2C_PORT_NUM = port_num;
-    tc74.I2C_ADDRESS = variant;
-
-    i2c_init();
-    disable_standby();
-}
-
-float read_TC74()
-{
-    /*!< Read temperature value from TEMPERATURE register */
-
-    uint8_t data[1] = {0};
-
+    int ret;
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    // START bit
     i2c_master_start(cmd);
-
-    // Select temperature register
-    select_temperature_register(cmd);
-
-    // Start reading temperature data
+    i2c_master_write_byte(cmd, TC74_SLAVE_ADDR << 1 | WRITE_BIT, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, READ_TEMP_REGISTER, ACK_CHECK_EN);
     i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, tc74.I2C_ADDRESS << 1 | READ_BIT, ACK_CHECK_EN);
-    i2c_master_read(cmd, data, 1, NACK_VAL);
-
-    // STOP
+    i2c_master_write_byte(cmd, TC74_SLAVE_ADDR << 1 | READ_BIT, ACK_CHECK_EN);
+    i2c_master_read_byte(cmd, tmprt, NACK_VAL);
     i2c_master_stop(cmd);
-
-    // END transmission
-    i2c_master_cmd_begin(tc74.I2C_PORT_NUM, cmd, 300 / portTICK_PERIOD_MS);
+    ret = i2c_master_cmd_begin(i2c_num, cmd, 300 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
-    return data[0];
-    return extract_value_from_buffer(data[0]);
+    return ret;
 }
 
-void disable_standby()
+/**
+ * @brief read TC74 operation mode (I2C)
+ *
+ * param   i2c_num : Esp32's i2c port number to send data to.
+ * param   mode : Operation mode returned by the sensor
+ * return  err :  error code if anything went wrong
+ *
+ * Operations executed in the I2C bus
+ * _________________________________________________________________
+ * | start | slave_addr + wr_bit + ack | write 1 byte + ack  | start | slave_addr + rd_bit + ack | read 1 byte + nack | stop |
+ * --------|---------------------------|---------------------|------|
+ */
+esp_err_t i2c_master_read_tc74_config(i2c_port_t i2c_num, uint8_t *mode)
 {
-    /*!< Unfreeze the temperature register */
-
+    int ret;
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-
-    // START bit
     i2c_master_start(cmd);
-
-    // Select configuration register
-    select_config_register(cmd);
-
-    // Disable standby
-    i2c_master_write_byte(cmd, NOPWRSAVE, ACK_CHECK_EN);
-
-    // STOP
+    i2c_master_write_byte(cmd, TC74_SLAVE_ADDR << 1 | WRITE_BIT, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, READ_WRITE_CONFIG_REGISTER, ACK_CHECK_EN);
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, TC74_SLAVE_ADDR << 1 | READ_BIT, ACK_CHECK_EN);
+    i2c_master_read_byte(cmd, mode, NACK_VAL);
     i2c_master_stop(cmd);
-
-    // END transmission
-    i2c_master_cmd_begin(tc74.I2C_PORT_NUM, cmd, 300 / portTICK_PERIOD_MS);
+    ret = i2c_master_cmd_begin(i2c_num, cmd, 300 / portTICK_RATE_MS);
     i2c_cmd_link_delete(cmd);
 
-    vTaskDelay(250 / portTICK_PERIOD_MS);
+    return ret;
+
+}
+
+/**
+ * @brief write data to TC74 configuration register, used for setting the sensor in normal/standby mode (I2C)
+ *
+ * param   i2c_num : Esp32's i2c port number to send data to.
+ * param   mode : Operation mode you want to set -> NORMAL OR STANDBY
+ * return  err :  error code if anything went wrong
+ *
+ * Operations executed in the I2C bus
+ * _________________________________________________________________
+ * | start | slave_addr + wr_bit + ack | write 1 byte + ack | data 1 byte + ack | stop |
+ * --------|---------------------------|---------------------|------|
+ */
+esp_err_t i2c_master_set_tc74_mode(i2c_port_t i2c_num,uint8_t mode)
+{
+    int ret;
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, TC74_SLAVE_ADDR << 1 | WRITE_BIT, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, READ_WRITE_CONFIG_REGISTER, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, mode, ACK_CHECK_EN);
+    i2c_master_stop(cmd);
+    ret = i2c_master_cmd_begin(i2c_num, cmd, 300 / portTICK_RATE_MS);
+    i2c_cmd_link_delete(cmd);
+    return ret;
 }
