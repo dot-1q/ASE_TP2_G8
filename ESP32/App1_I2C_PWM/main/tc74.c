@@ -91,7 +91,7 @@ float read_TC74()
     // END transmission
     i2c_master_cmd_begin(tc74.I2C_PORT_NUM, cmd, 300 / portTICK_PERIOD_MS);
     i2c_cmd_link_delete(cmd);
-
+    return data[0];
     return extract_value_from_buffer(data[0]);
 }
 

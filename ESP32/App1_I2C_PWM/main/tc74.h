@@ -16,6 +16,9 @@
 //#region TC74_Pins
 #define SCL GPIO_NUM_22
 #define SDA GPIO_NUM_21
+
+// #define SCL 22
+// #define SDA 21
 //#endregion
 
 //#region TC74_Registers

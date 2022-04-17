@@ -10,9 +10,7 @@
 
 #define RED_LED_GPIO        (18) 
 #define GREEN_LED_GPIO      (19) 
-#define BLUE_LED_GPIO       (21) 
-
-#define LED_PWM_FREQ        (50)
+#define BLUE_LED_GPIO       (23) 
 
 #define LEDC_TIMER              LEDC_TIMER_0 
 #define LEDC_MODE               LEDC_LOW_SPEED_MODE
@@ -115,7 +113,7 @@ void set_led_rgb(float r, float g, float b){
     float green_dc = g/255;
     float blue_dc = b/255;
 
-    printf("%f %f %f \n", red_dc, green_dc, blue_dc);
+    // printf("%f %f %f \n", red_dc, green_dc, blue_dc);
 
     ledc_set_duty(LEDC_MODE, LEDC_CHANNEL_0, (int)(red_dc*LEDC_DUTY_MAX));
     ledc_update_duty(LEDC_MODE, LEDC_CHANNEL_0);
@@ -134,12 +132,16 @@ void app_main(void)
     led_pwm_init();
     while (1) {
         for (int h = 0; h < 360; h+=1) {
+            
+            vTaskDelay(100); 
+
             temperature = read_TC74();
-            vTaskDelay(1); 
           
             HSVtoRGB(h, 100, 100);
 
             set_led_rgb(100, rgb[1], rgb[2]);
+
+            printf("Temp: %f\n", temperature);
 
         }
     }
