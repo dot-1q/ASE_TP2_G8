@@ -1,3 +1,4 @@
+
 #include <driver/gpio.h>
 #include <driver/uart.h>
 #include <freertos/FreeRTOS.h>
@@ -43,32 +44,53 @@ static bool adc_calibration_init(void)
 
     return cali_enable;
 }
+ 
+#define DEFAULT_VREF    1100
+#define NO_OF_SAMPLES 25
+  
+//To configure the UART 
+void config_UART (uart_port_t uart_num){ 
+  
+    uart_config_t uart_config = { 
+        .baud_rate = 115200, 
+        .data_bits = UART_DATA_8_BITS, 
+        .parity = UART_PARITY_DISABLE, 
+        .stop_bits = UART_STOP_BITS_1, 
+        .flow_ctrl = UART_HW_FLOWCTRL_CTS_RTS,      //​ enable hardware flow control 
+        .rx_flow_ctrl_thresh = 122, 
+    }; 
 
-int app_main() {
+    //​ Configure UART parameters 
+  ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config)); 
 
-    esp_err_t ret = ESP_OK;
-    uint32_t voltage = 0;
-    bool cali_enable = adc_calibration_init();
+    //​ Set UART pins(TX: IO4, RX: IO5, RTS: IO18, CTS: IO19) 
+    ESP_ERROR_CHECK(uart_set_pin(uart_num, 4, 5, 18, 19)); 
+
+    //​ Setup UART buffered IO with event queue 
+    const int uart_buffer_size = (1024 * 2); 
+    QueueHandle_t uart_queue; 
+    //uart_driver_install(uart_num, rx_buffer_size, tx_buffer_size, queue_size, uart_queue, intr_alloc_flags) 
+    ESP_ERROR_CHECK(uart_driver_install(uart_num, uart_buffer_size, uart_buffer_size, 10, &uart_queue,0)); 
+} 
+
+void app_main(void){ 
+   //​ ADC1 channel 0 is GPIO36 
+   gpio_set_direction(GPIO_NUM_35, GPIO_MODE_INPUT); 
+
+   config_UART(UART_NUM_0);
+
+   uint32_t voltage = 0;
+   bool cali_enable = adc_calibration_init();
 
     //ADC1 config
     ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_DEFAULT));
-    ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_EXAMPLE_CHAN0, ADC_EXAMPLE_ATTEN));
+    ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_EXAMPLE_CHAN0, ADC_EXAMPLE_ATTEN));   
+   
+   //​ To read ADC conversion result 
 
-    uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity    = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
-    };
-    uart_driver_install(UART_NUM_1, 2048, 0, 0, NULL, 0);
-    uart_param_config(UART_NUM_1, &uart_config);
-    uart_set_pin(UART_NUM_1, 10, 9, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    // Main loop
-    char* teste_var="A";
+   char* send_buf = "A";
 
-    while(true) {
-
+   while(1){ 
         adc_raw = adc1_get_raw(ADC1_EXAMPLE_CHAN0);
         ESP_LOGI(TAG_CH, "raw  data: %d", adc_raw);
         if (cali_enable) {
@@ -77,9 +99,10 @@ int app_main() {
         }
 
         // Aqui iremos ler da dac e imprimir
-        int ret = uart_write_bytes(UART_NUM_1, (void*)teste_var, 1);
+        int ret = uart_write_bytes(UART_NUM_1, (void*)send_buf, 1);
         printf("%d\n", ret);
         printf("gpio: %d\n", ADC1_GPIO35_CHANNEL);
         vTaskDelay(100);
-    }
+   }
 }
+
