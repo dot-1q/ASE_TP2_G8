@@ -40,13 +40,18 @@
 
 // _Static_assert(OUTPUT_POINT_NUM <= POINT_ARR_LEN, "The CONFIG_EXAMPLE_WAVE_FREQUENCY is too low and using too long buffer.");
 
+#define GPIO_INPUT_IO_0     4
+#define GPIO_INPUT_IO_1     5
+#define GPIO_INPUT_PIN_SEL  ((1ULL<<GPIO_INPUT_IO_0) | (1ULL<<GPIO_INPUT_IO_1))
+#define ESP_INTR_FLAG_DEFAULT 0
+
 static int raw_val[POINT_ARR_LEN];                      // Used to store raw values
 static int volt_val[POINT_ARR_LEN];                    // Used to store voltage values(in mV)
 static const char *TAG = "wave_gen";
 
 static int g_index = 0;
 
-static int AMP_DAC = 255;
+static int AMP_DAC = 250;
 
 // static int freq = 3000;
 
@@ -234,6 +239,39 @@ int melody[] = {
 
 int notes = sizeof(melody) / sizeof(melody[0]) / 2;
 
+
+
+static void volume_control(void* arg)
+{
+    int gpio_0, gpio_1;
+    while(1){ 
+        vTaskDelay(20); 
+        gpio_0 = gpio_get_level(GPIO_INPUT_IO_0);
+        gpio_1 = gpio_get_level(GPIO_INPUT_IO_1);
+        if (AMP_DAC > 0 && gpio_0){
+            AMP_DAC -= 10;
+        }
+        if (AMP_DAC < 250 && gpio_1){
+            AMP_DAC += 10;
+        }
+    }
+}
+
+void config_gpio(){
+    //zero-initialize the config structure.
+    gpio_config_t io_conf = {};
+    //interrupt of rising edge
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    //bit mask of the pins, use GPIO4/5 here
+    io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
+    //set as input mode
+    io_conf.mode = GPIO_MODE_INPUT;
+    //enable pull-up mode
+    io_conf.pull_down_en = 0;
+    io_conf.pull_up_en = 1;
+    gpio_config(&io_conf);
+}
+
 void app_main(void)
 {
     esp_err_t ret;
@@ -245,11 +283,11 @@ void app_main(void)
     log_info();
     g_index = 0;
 
-    // int freq = 3000;
 
-    // prepare_data(freq);
+    config_gpio();
 
-    // int freq_idx = 0;
+    xTaskCreate(volume_control, "volume_control", 2048, NULL, 10, NULL);
+
 
     // this calculates the duration of a whole note in ms (60s/tempo)*4 beats
     int wholenote = (60000 * 4) / tempo;

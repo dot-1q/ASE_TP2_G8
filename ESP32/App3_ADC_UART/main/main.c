@@ -61,7 +61,7 @@ void config_UART (uart_port_t uart_num){
     }; 
 
     //​ Configure UART parameters 
-  ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config)); 
+    ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config)); 
 
     //​ Set UART pins(TX: IO4, RX: IO5, RTS: IO18, CTS: IO19) 
     ESP_ERROR_CHECK(uart_set_pin(uart_num, 4, 5, 18, 19)); 
