@@ -35,7 +35,7 @@
 #define ALARM_VAL_US           SEC_TO_MICRO_SEC(TIMER_INTR_US * TIMER_TICKS)     // Alarm value in micro-seconds
 // #define OUTPUT_POINT_NUM       (int)(1000000 / (TIMER_INTR_US * FREQ) + 0.5)     // The number of output wave points.
 
-#define DAC_CHAN               CONFIG_EXAMPLE_DAC_CHANNEL           // DAC_CHANNEL_1 (GPIO25) by default
+#define DAC_CHAN               DAC_CHANNEL_1           // DAC_CHANNEL_1 (GPIO25) by default
 // #define FREQ                   CONFIG_EXAMPLE_WAVE_FREQUENCY        // 3kHz by default
 
 // _Static_assert(OUTPUT_POINT_NUM <= POINT_ARR_LEN, "The CONFIG_EXAMPLE_WAVE_FREQUENCY is too low and using too long buffer.");
@@ -97,19 +97,14 @@ static void example_timer_init(int timer_idx, bool auto_reload)
     OUTPUT_POINT_NUM = pnt_num;
     timer_pause(TIMER_GROUP_0, TIMER_0);
     for (int i = 0; i < pnt_num; i ++) {
-        // #ifdef CONFIG_EXAMPLE_WAVEFORM_SINE
         raw_val[i] = (int)((sin( i * CONST_PERIOD_2_PI / pnt_num) + 1) * (double)(AMP_DAC)/2 + 0.5);
-        // #elif CONFIG_EXAMPLE_WAVEFORM_TRIANGLE
-        //     raw_val[i] = (i > (pnt_num/2)) ? (2 * AMP_DAC * (pnt_num - i) / pnt_num) : (2 * AMP_DAC * i / pnt_num);
-        // #elif CONFIG_EXAMPLE_WAVEFORM_SAWTOOTH
-        //     raw_val[i] = (i == pnt_num) ? 0 : (i * AMP_DAC / pnt_num);
-        // #elif CONFIG_EXAMPLE_WAVEFORM_SQUARE
-        //     raw_val[i] = (i < (pnt_num/2)) ? AMP_DAC : 0;
-        // #endif
+        
         volt_val[i] = (int)(VDD * raw_val[i] / (float)AMP_DAC);
     }
     g_index = 0;
     timer_start(TIMER_GROUP_0, TIMER_0);
+
+    ESP_LOGI(TAG, "Frequency(Hz): %d", freq);
 }
 
 static void log_info(void)
@@ -120,17 +115,7 @@ static void log_info(void)
     } else {
         ESP_LOGI(TAG, "GPIO:%d", GPIO_NUM_26);
     }
-    #ifdef CONFIG_EXAMPLE_WAVEFORM_SINE
-        ESP_LOGI(TAG, "Waveform: SINE");
-    #elif CONFIG_EXAMPLE_WAVEFORM_TRIANGLE
-        ESP_LOGI(TAG, "Waveform: TRIANGLE");
-    #elif CONFIG_EXAMPLE_WAVEFORM_SAWTOOTH
-        ESP_LOGI(TAG, "Waveform: SAWTOOTH");
-    #elif CONFIG_EXAMPLE_WAVEFORM_SQUARE
-        ESP_LOGI(TAG, "Waveform: SQUARE");
-    #endif
-
-    // ESP_LOGI(TAG, "Frequency(Hz): %d", FREQ);
+    
     // ESP_LOGI(TAG, "Output points num: %d\n", OUTPUT_POINT_NUM);
 }
 
@@ -294,7 +279,7 @@ void app_main(void)
             prepare_data(100);
         }
         
-
+        // prepare_data(1000);
         printf("note: %d\ndura: %d\n\n", melody[thisNote], noteDuration);
         
         
