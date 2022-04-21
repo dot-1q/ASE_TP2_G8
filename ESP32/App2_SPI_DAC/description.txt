@@ -1,2 +1,4 @@
-DAC will be producint musical notes, according to an array of notes
+DAC will be producint musical notes played through a buzzer, according to an array of notes
 which will be filled with values read from the SPI eeprom
+After playing the song, the cpu enters light sleep mode until a button is pressed.
+The 2 buttons control the volume of the buzzer

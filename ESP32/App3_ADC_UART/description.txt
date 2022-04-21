@@ -1,1 +1,2 @@
-read from the ADC and print on terminal using UART 
+read from the ADC and print the value in mV on terminal using UART
+If the value is bigger than 1500 mV, a led is turned on.
