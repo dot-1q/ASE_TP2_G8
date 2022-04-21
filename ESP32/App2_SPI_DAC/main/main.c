@@ -7,6 +7,7 @@
 */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <assert.h>
 #include "freertos/FreeRTOS.h"
@@ -16,6 +17,11 @@
 #include "driver/dac.h"
 #include "driver/timer.h"
 #include "esp_log.h"
+#include "esp_sleep.h"
+#include "driver/uart.h"
+
+
+#include "store_songs.c"
 
 /*  The timer ISR has an execution time of 5.5 micro-seconds(us).
     Therefore, a timer period less than 5.5 us will cause trigger the interrupt watchdog.
@@ -47,7 +53,7 @@
 
 static int raw_val[POINT_ARR_LEN];                      // Used to store raw values
 static int volt_val[POINT_ARR_LEN];                    // Used to store voltage values(in mV)
-static const char *TAG = "wave_gen";
+// static const char *TAG = "wave_gen";
 
 static int g_index = 0;
 
@@ -109,150 +115,35 @@ static void example_timer_init(int timer_idx, bool auto_reload)
     g_index = 0;
     timer_start(TIMER_GROUP_0, TIMER_0);
 
-    ESP_LOGI(TAG, "Frequency(Hz): %d", freq);
+    ESP_LOGI("WAVE_GEN", "Frequency(Hz): %d", freq);
 }
 
 static void log_info(void)
 {
-    ESP_LOGI(TAG, "DAC output channel: %d", DAC_CHAN);
+    ESP_LOGI("WAVE_GEN", "DAC output channel: %d", DAC_CHAN);
     if (DAC_CHAN == DAC_CHANNEL_1) {
-        ESP_LOGI(TAG, "GPIO:%d", GPIO_NUM_25);
+        ESP_LOGI("WAVE_GEN", "GPIO:%d", GPIO_NUM_25);
     } else {
-        ESP_LOGI(TAG, "GPIO:%d", GPIO_NUM_26);
+        ESP_LOGI("WAVE_GEN", "GPIO:%d", GPIO_NUM_26);
     }
     
     // ESP_LOGI(TAG, "Output points num: %d\n", OUTPUT_POINT_NUM);
 }
 
-static int freqs[] = {100, 1000, 200, 1000, 300} ;
-static int freqs_len = 5;
-
-
-
-#define NOTE_B0  31
-#define NOTE_C1  33
-#define NOTE_CS1 35
-#define NOTE_D1  37
-#define NOTE_DS1 39
-#define NOTE_E1  41
-#define NOTE_F1  44
-#define NOTE_FS1 46
-#define NOTE_G1  49
-#define NOTE_GS1 52
-#define NOTE_A1  55
-#define NOTE_AS1 58
-#define NOTE_B1  62
-#define NOTE_C2  65
-#define NOTE_CS2 69
-#define NOTE_D2  73
-#define NOTE_DS2 78
-#define NOTE_E2  82
-#define NOTE_F2  87
-#define NOTE_FS2 93
-#define NOTE_G2  98
-#define NOTE_GS2 104
-#define NOTE_A2  110
-#define NOTE_AS2 117
-#define NOTE_B2  123
-#define NOTE_C3  131
-#define NOTE_CS3 139
-#define NOTE_D3  147
-#define NOTE_DS3 156
-#define NOTE_E3  165
-#define NOTE_F3  175
-#define NOTE_FS3 185
-#define NOTE_G3  196
-#define NOTE_GS3 208
-#define NOTE_A3  220
-#define NOTE_AS3 233
-#define NOTE_B3  247
-#define NOTE_C4  262
-#define NOTE_CS4 277
-#define NOTE_D4  294
-#define NOTE_DS4 311
-#define NOTE_E4  330
-#define NOTE_F4  349
-#define NOTE_FS4 370
-#define NOTE_G4  392
-#define NOTE_GS4 415
-#define NOTE_A4  440
-#define NOTE_AS4 466
-#define NOTE_B4  494
-#define NOTE_C5  523
-#define NOTE_CS5 554
-#define NOTE_D5  587
-#define NOTE_DS5 622
-#define NOTE_E5  659
-#define NOTE_F5  698
-#define NOTE_FS5 740
-#define NOTE_G5  784
-#define NOTE_GS5 831
-#define NOTE_A5  880
-#define NOTE_AS5 932
-#define NOTE_B5  988
-#define NOTE_C6  1047
-#define NOTE_CS6 1109
-#define NOTE_D6  1175
-#define NOTE_DS6 1245
-#define NOTE_E6  1319
-#define NOTE_F6  1397
-#define NOTE_FS6 1480
-#define NOTE_G6  1568
-#define NOTE_GS6 1661
-#define NOTE_A6  1760
-#define NOTE_AS6 1865
-#define NOTE_B6  1976
-#define NOTE_C7  2093
-#define NOTE_CS7 2217
-#define NOTE_D7  2349
-#define NOTE_DS7 2489
-#define NOTE_E7  2637
-#define NOTE_F7  2794
-#define NOTE_FS7 2960
-#define NOTE_G7  3136
-#define NOTE_GS7 3322
-#define NOTE_A7  3520
-#define NOTE_AS7 3729
-#define NOTE_B7  3951
-#define NOTE_C8  4186
-#define NOTE_CS8 4435
-#define NOTE_D8  4699
-#define NOTE_DS8 4978
-#define REST 0
-
-// change this to make the song slower or faster
-int tempo = 144;
-
-// change this to whichever pin you want to use
-int buzzer = 11;
-
-// notes of the moledy followed by the duration.
-// a 4 means a quarter note, 8 an eighteenth , 16 sixteenth, so on
-// !!negative numbers are used to represent dotted notes,
-// so -4 means a dotted quarter note, that is, a quarter plus an eighteenth!!
-int melody[] = {
-  NOTE_E5, 8, NOTE_D5, 8, NOTE_FS4, 4, NOTE_GS4, 4, 
-  NOTE_CS5, 8, NOTE_B4, 8, NOTE_D4, 4, NOTE_E4, 4, 
-  NOTE_B4, 8, NOTE_A4, 8, NOTE_CS4, 4, NOTE_E4, 4,
-  NOTE_A4, 2
-};
-
-int notes = sizeof(melody) / sizeof(melody[0]) / 2;
-
-
-
 static void volume_control(void* arg)
 {
     int gpio_0, gpio_1;
     while(1){ 
-        vTaskDelay(20); 
+        vTaskDelay(20);
         gpio_0 = gpio_get_level(GPIO_INPUT_IO_0);
         gpio_1 = gpio_get_level(GPIO_INPUT_IO_1);
         if (AMP_DAC > 0 && gpio_0){
             AMP_DAC -= 10;
+            printf("Volume: %d\n", AMP_DAC);
         }
         if (AMP_DAC < 250 && gpio_1){
             AMP_DAC += 10;
+            printf("Volume: %d\n", AMP_DAC);
         }
     }
 }
@@ -261,19 +152,96 @@ void config_gpio(){
     //zero-initialize the config structure.
     gpio_config_t io_conf = {};
     //interrupt of rising edge
-    io_conf.intr_type = GPIO_INTR_DISABLE;
+    // io_conf.intr_type = GPIO_INTR_DISABLE;
     //bit mask of the pins, use GPIO4/5 here
     io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
     //set as input mode
     io_conf.mode = GPIO_MODE_INPUT;
     //enable pull-up mode
     io_conf.pull_down_en = 0;
-    io_conf.pull_up_en = 1;
+    io_conf.pull_up_en = 0;
     gpio_config(&io_conf);
 }
 
+static int16_t* melody ;
+
+ EEPROM_t dev;
+
+static int get_song(uint16_t addr){
+
+    uint8_t lenght[1];
+    uint8_t len;
+    do{
+        //read first byte to get size
+        len =  eeprom_Read(&dev, addr, lenght, 1);
+        if (len != 1) {
+            ESP_LOGE(TAG, "Read Fail");
+            // while(1) { vTaskDelay(1); }
+        }
+        ESP_LOGI(TAG, "Read Data: len=%d", len);
+
+        printf("Lenght: %d\n", lenght[0]);
+    }while(lenght[0]==255);
+
+    // Read Data
+	// uint16_t rdata[lenght[0]];
+    uint8_t rbuf[lenght[0]*2];
+
+    addr++;
+
+    bool check;
+
+    do{
+        check = true;
+        len =  eeprom_Read(&dev, addr, rbuf , lenght[0]*2);
+        if (len != lenght[0]*2) {
+            ESP_LOGE(TAG, "Read Fail");
+            // while(1) { vTaskDelay(1); }
+        }
+        ESP_LOGI(TAG, "Read Data: len=%d", len);
+    
+        uint8_t c1, c2;
+        melody = malloc(255 * 2);
+        for(int i = 0; i < lenght[0]; i++){  
+            c1 = rbuf[i*2];
+            c2 = rbuf[i*2+1];
+            printf("Bytes: %d %d\n", c1, c2);
+
+            melody[i] = (c2 << 8) | c1;
+            printf("Read %d\n", melody[i]);
+            // if (c1 == 255 && c2 == 255){
+            //     check = false;
+            //     break;
+            // }
+        }
+    }while (!check);
+
+    // melody = rdata;
+
+    printf("Melody %d %d %d %d %d\n", melody[0], melody[1],melody[2],melody[3],melody[4]);
+
+    return lenght[1];
+	
+}
+
+#define STORE_SONGS 0
+
 void app_main(void)
 {
+   
+	spi_master_init(&dev);
+    vTaskDelay(100);
+    if (STORE_SONGS){
+
+        printf("Harry: %d\n", sizeof(harry)/2);
+        store_song(dev, harry, 200,  sizeof(harry)/2);
+
+        printf("Nokia: %d\n", sizeof(nokia)/2);
+        store_song(dev, nokia, 0,  sizeof(nokia)/2);
+        // return;
+        vTaskDelay(100);
+    }
+
     esp_err_t ret;
     example_timer_init(TIMER_0, WITH_RELOAD);
 
@@ -288,21 +256,43 @@ void app_main(void)
 
     xTaskCreate(volume_control, "volume_control", 2048, NULL, 10, NULL);
 
+    // esp_sleep_enable_ext0_wakeup(GPIO_INPUT_IO_1, 1);
 
-    // this calculates the duration of a whole note in ms (60s/tempo)*4 beats
+    gpio_wakeup_enable(GPIO_INPUT_IO_1, GPIO_INTR_HIGH_LEVEL);
+    esp_sleep_enable_gpio_wakeup();
+
+    
+
+    // change this to make the song slower or faster
+    int tempo = 144;
+
+    int notes = get_song(200) / 2; //nokia 0 / harry 200
+
+    // uncomment the foolowing lines to ignore reading from spi
+    // melody = nokia;
+    // notes = sizeof(nokia)/4;
+
+    vTaskDelay(100);
+
+     // this calculates the duration of a whole note in ms (60s/tempo)*4 beats
     int wholenote = (60000 * 4) / tempo;
 
     int divider = 0, noteDuration = 100;
 
     int thisNote = 0;
+
+    
+
     while(1){
-        thisNote = thisNote + 2;
         if (thisNote > notes * 2){
+            // while ( gpio_get_level(GPIO_INPUT_IO_1) == 0);
+            uart_wait_tx_idle_polling(CONFIG_ESP_CONSOLE_UART_NUM);
+            esp_light_sleep_start();
             thisNote = 0;
         }
         
-        vTaskDelay((int)(noteDuration/10));
         divider = melody[thisNote + 1];
+
         if (divider > 0) {
              // regular note, just proceed
             noteDuration = (wholenote) / divider;
@@ -311,15 +301,18 @@ void app_main(void)
             noteDuration = (wholenote) / abs(divider);
             noteDuration *= 1.5; // increases the duration in half for dotted notes
         }
-        if(2*melody[thisNote] > 100){
+         
+        if (noteDuration != 0){
+            
+            if(2*melody[thisNote] > 100){
             prepare_data(2*melody[thisNote]);
-        }else{
-            prepare_data(100);
-        }
-        
-        // prepare_data(1000);
-        printf("note: %d\ndura: %d\n\n", melody[thisNote], noteDuration);
-        
-        
+            }else{
+                prepare_data(100);
+            }
+            printf("thisNote: %d\nnote: %d\ndura: %d\n\n", thisNote, melody[thisNote], noteDuration);
+
+            vTaskDelay((int)(noteDuration/10));
+        } 
+        thisNote = thisNote + 2;
     }
 }

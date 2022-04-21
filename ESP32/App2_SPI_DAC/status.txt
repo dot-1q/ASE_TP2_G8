@@ -1,1 +1,2 @@
-STARTED
+TESTED WITH ISSUES FOUND
+SPI read with problems
