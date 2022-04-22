@@ -226,12 +226,15 @@ static int get_song(uint16_t addr){
 
 #define STORE_SONGS 0
 
+#define USE_EEPROM 0
+
 void app_main(void)
 {
-   
-	spi_master_init(&dev);
+    if (USE_EEPROM){
+	    spi_master_init(&dev);
+    }
     vTaskDelay(100);
-    if (STORE_SONGS){
+    if (STORE_SONGS && USE_EEPROM){
 
         printf("Harry: %d\n", sizeof(harry)/2);
         store_song(dev, harry, 200,  sizeof(harry)/2);
@@ -265,12 +268,16 @@ void app_main(void)
 
     // change this to make the song slower or faster
     int tempo = 144;
+    int notes;
+    if (USE_EEPROM){
+	    notes = get_song(200) / 2; //nokia 0 / harry 200
+    }else{
+        // uncomment the foolowing lines to ignore reading from spi
+        melody = nokia;
+        notes = sizeof(nokia)/4;
+    }
 
-    int notes = get_song(200) / 2; //nokia 0 / harry 200
-
-    // uncomment the foolowing lines to ignore reading from spi
-    // melody = nokia;
-    // notes = sizeof(nokia)/4;
+    
 
     vTaskDelay(100);
 
