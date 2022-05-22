@@ -1,0 +1,52 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title> Web App</title>
+    <link rel="stylesheet" href="/static/styles.css">
+
+</head>
+
+<body>
+    <div class="row">
+        <div class="column border-right" style="margin: 10px">
+            <h2> Brightness Value: {{ value }}</h2>
+            <h4> Please select a value for brightness from which the window should open</h4>
+            <div class="slidecontainer">
+                <form method=post>
+                    <input type="range" min="0" max="100" value={{last_value}} class="slider" id="myRange"
+                        name="slider_value">
+                    <p>Threshold: <span id="demo"></span>% <input class="button" type="submit" value="Submit"> </p>
+                </form>
+            </div>
+        </div>
+        <div class="column" style="margin: 10px;">
+            <h2>Images Captured by Raspberry Pi</h2>
+            <h4> Please select a value for the time interval between photos</h4>
+            <form method=post style="margin: 25px;">
+                <input type="number" min="1" max="60" value={{last_photo_value}} name="photo_value">
+                <input class="button" type="submit" value="Submit">
+            </form>
+            {% for rasp_photos in rasp_photos %}
+            <img src="{{url_for('static', filename=rasp_photos)}}" alt="{{rasp_photos}}" style="width:30%">
+            {% endfor %}
+        </div>
+    </div>
+
+
+    <script>
+        var slider = document.getElementById("myRange");
+        var output = document.getElementById("demo");
+        output.innerHTML = slider.value;
+
+        slider.oninput = function () {
+            output.innerHTML = this.value;
+        }
+    </script>
+</body>
+
+</html>
