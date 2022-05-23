@@ -1,1 +1,3 @@
-to be defined
+An application that takes photos periodically in 5 different positions controlled by a servo motor.
+The photos are only taken when the ambient light level is above a certain threshold.
+The threshold and the periodicity of the photos is adjustable in a web app, where the photo library can also be accessed.

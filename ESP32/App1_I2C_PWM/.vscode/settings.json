@@ -1,12 +1,8 @@
 {
-    "C_Cpp.intelliSenseEngine": "Tag Parser",
+    "idf.port": "/dev/cu.usbserial-120",
+    "idf.flashType": "UART",
     "idf.adapterTargetName": "esp32",
-    "idf.customExtraPaths": "/home/tiago/.espressif/tools/xtensa-esp32-elf/esp-2021r2-8.4.0/xtensa-esp32-elf/bin:/home/tiago/.espressif/tools/xtensa-esp32s2-elf/esp-2021r2-8.4.0/xtensa-esp32s2-elf/bin:/home/tiago/.espressif/tools/xtensa-esp32s3-elf/esp-2021r2-8.4.0/xtensa-esp32s3-elf/bin:/home/tiago/.espressif/tools/riscv32-esp-elf/esp-2021r2-8.4.0/riscv32-esp-elf/bin:/home/tiago/.espressif/tools/esp32ulp-elf/2.28.51-esp-20191205/esp32ulp-elf-binutils/bin:/home/tiago/.espressif/tools/esp32s2ulp-elf/2.28.51-esp-20191205/esp32s2ulp-elf-binutils/bin:/home/tiago/.espressif/tools/cmake/3.20.3/bin:/home/tiago/.espressif/tools/openocd-esp32/v0.11.0-esp32-20211220/openocd-esp32/bin:/home/tiago/.espressif/tools/ninja/1.10.2",
-    "idf.customExtraVars": "{\"OPENOCD_SCRIPTS\":\"/home/tiago/.espressif/tools/openocd-esp32/v0.11.0-esp32-20211220/openocd-esp32/share/openocd/scripts\"}",
-    "idf.espIdfPath": "/home/tiago/esp/esp-idf",
-    "idf.openOcdConfigs": [
-        "board/esp32-wrover-kit-3.3v.cfg"
-    ],
-    "idf.pythonBinPath": "/home/tiago/.espressif/python_env/idf4.4_py3.8_env/bin/python",
-    "idf.toolsPath": "/home/tiago/.espressif"
+    "files.associations": {
+        "stdlib.h": "c"
+    }
 }
