@@ -1,0 +1,1 @@
+/usr/local/cuda/bin/nvcc -lm -lopencv_core -lopencv_highgui -lopencv_imgcodecs -I/usr/include/opencv4 histogram.cu -o histogram

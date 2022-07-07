@@ -1,0 +1,1 @@
+The histogram app computes the histogram for an image and saves it to a file using different approaches, one using the CPU and other using the GPU. For the approach using the GPU, several thread grid configuration are tested. For the different computations, the time is calculated and presented in the terminal.
